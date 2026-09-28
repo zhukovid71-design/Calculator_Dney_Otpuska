@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор дней отпуска железнодорожника</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 60px;
+    background: #eef3fb;
+    color: #1e2530;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; color: #1b2c4a; letter-spacing: -0.2px; }
+  .subtitle { color: #5a7ba6; font-size: 13px; margin: 0 0 20px; }
+
+  /* ============ ЗАМОК ============ */
+  #lockScreen {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; padding: 20px;
+  }
+  .lock-box {
+    background: #fff; border-radius: 16px; padding: 32px 28px;
+    max-width: 380px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center; animation: lockIn 0.3s ease-out;
+  }
+  @keyframes lockIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .lock-icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .lock-icon svg { width: 28px; height: 28px; stroke: #1d4ed8; }
+  .lock-box h2 { margin: 0 0 6px; font-size: 20px; color: #1b2c4a; font-weight: 700; }
+  .lock-box p { margin: 0 0 20px; color: #64748b; font-size: 13px; }
+  .lock-input-wrap { position: relative; margin-bottom: 12px; }
+  #pwdInput {
+    font-family: inherit; font-size: 15px;
+    padding: 12px 44px 12px 14px;
+    border: 1.5px solid #cbd5e1; border-radius: 8px;
+    background: #f8fafc; color: #1e2530; width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  #pwdInput:focus {
+    outline: none; border-color: #2563eb; background: #fff;
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+  }
+  .toggle-pwd {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 4px;
+    color: #64748b; font-size: 16px; line-height: 1; border-radius: 4px;
+  }
+  .toggle-pwd:hover { color: #2563eb; background: #eff6ff; }
+  .lock-btn {
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    padding: 12px 24px; width: 100%; border: none; border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff; box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    transition: filter 0.15s, box-shadow 0.15s;
+  }
+  .lock-btn:hover { filter: brightness(1.08); box-shadow: 0 4px 12px rgba(37,99,235,0.4); }
+  .lock-btn:active { transform: translateY(1px); }
+  #pwdError { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; font-weight: 500; }
+
+  /* ============ ОСНОВНОЙ КОНТЕНТ ============ */
+  #appContent { display: none; }
+  #appContent.unlocked { display: block; }
+
+  /* ============ ГЛАВНЫЕ ВКЛАДКИ ============ */
+  .main-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid #d6e0f0;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+  }
+  .main-tab {
+    flex: 1;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: #5a7ba6;
+    transition: background 0.15s, color 0.15s;
+  }
+  .main-tab:hover { background: #eff6ff; color: #2563eb; }
+  .main-tab.active {
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  }
+
+  /* ============ ПАНЕЛИ ============ */
+  .panel-content { display: none; }
+  .panel-content.active { display: block; }
+
+  .card {
+    background: #fff; border: 1px solid #d6e0f0; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+  }
+  .section-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #2563eb; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ""; display: inline-block; width: 4px; height: 14px;
+    background: #2563eb; border-radius: 2px;
+  }
+  .section + .section {
+    border-top: 1px solid #e5ecf7; margin-top: 20px; padding-top: 20px;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 13px; color: #334155; font-weight: 500; }
+  .field .hint { font-size: 12px; color: #8194b0; }
+  .field .hint.warn { color: #c2740a; }
+  .field .hint.info { color: #2563eb; }
+
+  input, select {
+    font-family: inherit; font-size: 14px; padding: 9px 11px;
+    border: 1.5px solid #d6e0f0; border-radius: 7px;
+    background: #fbfcff; color: #1e2530; width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  input:hover, select:hover { border-color: #b3c5e3; }
+  input:focus, select:focus {
+    outline: none; border-color: #2563eb; background: #fff;
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+  }
+  input[type=number] { text-align: right; }
+  input[type=date] { text-align: left; }
+
+  .computed {
+    background: linear-gradient(180deg, #eff5ff 0%, #e5eeff 100%);
+    border: 1.5px solid #b9ccef; border-radius: 7px;
+    padding: 9px 11px; font-size: 14px; text-align: right;
+    color: #1d4ed8; font-weight: 700;
+  }
+
+  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 14px; padding: 11px 22px;
+    border-radius: 7px; cursor: pointer; border: none;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff; font-weight: 600;
+    transition: transform 0.08s, box-shadow 0.15s, filter 0.15s;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  }
+  button:hover { filter: brightness(1.06); box-shadow: 0 4px 12px rgba(37,99,235,0.38); }
+  button:active { transform: translateY(1px); }
+  button.ghost {
+    background: #fff; color: #2563eb; border: 1.5px solid #c4d4ee;
+    font-weight: 500; box-shadow: none;
+  }
+  button.ghost:hover { background: #f0f6ff; border-color: #2563eb; box-shadow: none; }
+  button.pdf {
+    background: linear-gradient(180deg, #e63946 0%, #c1121f 100%);
+    box-shadow: 0 2px 6px rgba(193,18,31,0.3);
+  }
+  button.pdf:hover { box-shadow: 0 4px 12px rgba(193,18,31,0.4); }
+
+  .result {
+    background: linear-gradient(180deg, #e9f9f0 0%, #dbf4e5 100%);
+    border-left: 5px solid #10b981; border-radius: 10px;
+    padding: 20px 22px; margin-top: 20px;
+    display: none; box-shadow: 0 2px 8px rgba(16,185,129,0.12);
+  }
+  .result.show { display: block; }
+  .total {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; padding-bottom: 14px; margin-bottom: 12px;
+    border-bottom: 2px solid #a7e8c8;
+  }
+  .total .label { font-size: 14px; color: #065f46; font-weight: 600; }
+  .total .value {
+    font-size: 34px; font-weight: 800; color: #047857;
+    white-space: nowrap; letter-spacing: -0.5px;
+  }
+  .result .lines p { margin: 6px 0; font-size: 13px; color: #065f46; }
+  .result .lines .small { font-size: 12px; color: #4b7663; margin-left: 16px; }
+  .result .lines b { color: #047857; }
+  .result .lines .excluded { color: #c2740a; font-weight: 500; }
+  .result .lines .donor { color: #2563eb; font-weight: 500; }
+
+  .right-callout {
+    background: linear-gradient(135deg, #e0edff 0%, #d4e5ff 100%);
+    border: 1.5px solid #a6c2ec; border-radius: 10px;
+    padding: 16px 18px; margin-top: 14px;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+  }
+  .right-callout .right-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #375d92; margin-bottom: 5px; font-weight: 600;
+  }
+  .right-callout .right-date {
+    font-size: 24px; font-weight: 800; color: #1d4ed8;
+    margin-bottom: 3px; letter-spacing: -0.3px;
+  }
+  .right-callout .right-note { font-size: 12px; color: #4a6c9c; font-weight: 500; }
+
+  footer { text-align: center; color: #93a8c4; font-size: 12px; margin-top: 28px; }
+
+  .top-btns {
+    position: fixed; top: 16px; right: 16px;
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .top-btn {
+    font-size: 12px; padding: 6px 12px; border-radius: 6px;
+    border: 1.5px solid #c4d4ee; background: #fff; color: #2563eb;
+    cursor: pointer; font-family: inherit; font-weight: 500;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.12);
+  }
+  .top-btn:hover { background: #eff6ff; }
+  .top-btn.help {
+    background: #2563eb; color: #fff; border-color: #2563eb;
+    font-size: 14px; font-weight: 700;
+    padding: 6px 12px;
+  }
+  .top-btn.help:hover { background: #1d4ed8; }
+
+  /* ============ РУКОВОДСТВО ============ */
+  .manual-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .manual-layout { grid-template-columns: 1fr; }
+  }
+  .manual-toc {
+    position: sticky;
+    top: 20px;
+    background: #fff;
+    border: 1px solid #d6e0f0;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  .manual-toc h3 {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #2563eb;
+    margin: 0 0 10px; padding-bottom: 8px;
+    border-bottom: 1px solid #e5ecf7;
+  }
+  .manual-toc ol {
+    list-style: none; padding: 0; margin: 0;
+    counter-reset: toc;
+  }
+  .manual-toc li { margin-bottom: 2px; counter-increment: toc; }
+  .manual-toc a {
+    display: block;
+    color: #334155;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1.35;
+  }
+  .manual-toc a::before {
+    content: counter(toc) ". ";
+    color: #94a3b8;
+    font-weight: 600;
+  }
+  .manual-toc a:hover {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+  .manual-toc a.active {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .manual-content {
+    background: #fff;
+    border: 1px solid #d6e0f0;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+  }
+  .manual-content h2 {
+    font-size: 18px;
+    color: #1b2c4a;
+    margin: 28px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5ecf7;
+    scroll-margin-top: 20px;
+  }
+  .manual-content h2:first-child { margin-top: 0; }
+  .manual-content h3 {
+    font-size: 15px;
+    color: #1e293b;
+    margin: 20px 0 8px;
+  }
+  .manual-content h4 {
+    font-size: 14px;
+    color: #334155;
+    margin: 14px 0 6px;
+    font-weight: 600;
+  }
+  .manual-content p { margin: 8px 0; color: #334155; }
+  .manual-content ul, .manual-content ol {
+    margin: 8px 0;
+    padding-left: 22px;
+    color: #334155;
+  }
+  .manual-content li { margin-bottom: 4px; }
+  .manual-content strong { color: #1b2c4a; }
+  .manual-content code {
+    background: #f1f5f9;
+    color: #c1121f;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+  }
+  .manual-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .manual-content th {
+    background: #eff6ff;
+    color: #1d4ed8;
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    border: 1px solid #d6e0f0;
+  }
+  .manual-content td {
+    padding: 7px 12px;
+    border: 1px solid #e5ecf7;
+    vertical-align: top;
+    color: #334155;
+  }
+  .manual-content tr:nth-child(even) td { background: #fafcff; }
+
+  .manual-callout {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #1e40af;
+  }
+  .manual-callout.warn {
+    background: #fff8ec;
+    border-left-color: #f59e0b;
+    color: #92400e;
+  }
+  .manual-callout.success {
+    background: #ecfdf5;
+    border-left-color: #10b981;
+    color: #065f46;
+  }
+
+  .manual-formula {
+    background: #f8fafc;
+    border-left: 3px solid #2563eb;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #1e293b;
+    white-space: pre-wrap;
+    border-radius: 4px;
+  }
+
+  .back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+    display: none;
+    z-index: 90;
+  }
+  .back-to-top.show { display: block; }
+  .back-to-top:hover { background: #1d4ed8; }
+
+  /* ============ ПЕЧАТЬ / PDF ============ */
+  #printDoc { display: none; }
+
+  @media print {
+    body {
+      background: #fff !important;
+      padding: 0 !important;
+      font-size: 11pt;
+      color: #1a1a1a;
+      font-family: "PT Sans", "Arial", "Helvetica Neue", sans-serif;
+    }
+    body * { visibility: hidden; }
+    #printDoc, #printDoc * { visibility: visible; }
+    #printDoc {
+      display: block !important;
+      position: absolute; left: 0; top: 0;
+      width: 100%; padding: 0; margin: 0;
+    }
+    @page { margin: 15mm 14mm 18mm 14mm; size: A4; }
+    .pdf-page { page-break-after: always; }
+    .pdf-page:last-child { page-break-after: auto; }
+    #lockScreen, #appContent, .top-btns, .back-to-top { display: none !important; }
+  }
+
+  #printDoc * { box-sizing: border-box; }
+  #printDoc .doc-header {
+    border-bottom: 3px solid #D52B1E;
+    padding-bottom: 10pt;
+    margin-bottom: 18pt;
+  }
+  #printDoc .doc-header table { width: 100%; border: none; }
+  #printDoc .doc-header td { border: none; padding: 0; vertical-align: top; }
+  #printDoc .doc-header .org-name {
+    font-size: 15pt; font-weight: 700; color: #D52B1E;
+    margin: 0 0 3pt; letter-spacing: 0.3px; line-height: 1.15;
+  }
+  #printDoc .doc-header .org-sub {
+    font-size: 10pt; color: #4a4a4a; margin: 0; font-weight: 500;
+  }
+  #printDoc .doc-header .doc-info {
+    font-size: 9pt; color: #6a6a6a; text-align: right; line-height: 1.5;
+  }
+  #printDoc .doc-header .doc-info b { color: #1a1a1a; font-weight: 700; }
+  #printDoc h1.doc-title {
+    font-size: 16pt; font-weight: 700; color: #1a1a1a;
+    text-align: center; margin: 8pt 0 4pt;
+  }
+  #printDoc .doc-title-sub {
+    text-align: center; font-size: 10pt; color: #6a6a6a;
+    margin: 0 0 20pt; font-style: italic;
+  }
+  #printDoc h2 {
+    font-size: 12pt; font-weight: 700; color: #D52B1E;
+    margin: 18pt 0 10pt; padding-bottom: 5pt;
+    border-bottom: 1.5px solid #D52B1E;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  #printDoc h3 {
+    font-size: 11pt; font-weight: 700; color: #1a1a1a;
+    margin: 14pt 0 8pt; padding: 5pt 10pt;
+    background: #f2f2f2; border-left: 4px solid #D52B1E;
+  }
+  #printDoc p { margin: 6pt 0; line-height: 1.5; color: #1a1a1a; }
+  #printDoc table {
+    width: 100%; border-collapse: collapse;
+    margin: 10pt 0; font-size: 10pt;
+  }
+  #printDoc table th {
+    background: #D52B1E; color: #ffffff; font-weight: 700;
+    padding: 7pt 10pt; text-align: left;
+    border: 1px solid #D52B1E; font-size: 10pt;
+  }
+  #printDoc table td {
+    border: 1px solid #d8d8d8; padding: 6pt 10pt;
+    vertical-align: top; color: #1a1a1a;
+  }
+  #printDoc table tr:nth-child(even) td { background: #fafafa; }
+  #printDoc table td.num { text-align: right; white-space: nowrap; font-weight: 500; }
+  #printDoc table tr.total-row td {
+    background: #fdf2f2 !important; color: #D52B1E;
+    font-weight: 700; border-top: 2px solid #D52B1E;
+    border-bottom: 2px solid #D52B1E;
+  }
+  #printDoc .formula {
+    background: #fafafa; border-left: 3px solid #D52B1E;
+    padding: 8pt 12pt; margin: 8pt 0;
+    font-family: "Courier New", "Consolas", monospace;
+    font-size: 9.5pt; line-height: 1.55;
+    white-space: pre-wrap; color: #2a2a2a;
+  }
+  #printDoc .note {
+    font-size: 9pt; color: #555; font-style: italic;
+    background: #fafafa; border-left: 2px solid #999;
+    padding: 6pt 10pt; margin: 8pt 0; line-height: 1.5;
+  }
+  #printDoc .total-badge {
+    background: #D52B1E; color: #ffffff;
+    padding: 14pt 18pt; margin: 14pt 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #printDoc .total-badge .tb-label {
+    font-size: 11pt; font-weight: 600;
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  #printDoc .total-badge .tb-value { font-size: 20pt; font-weight: 700; }
+  #printDoc .sign {
+    margin-top: 36pt; display: table; width: 100%;
+  }
+  #printDoc .sign .sign-col {
+    display: table-cell; width: 45%;
+    vertical-align: bottom; font-size: 10pt; color: #1a1a1a;
+  }
+  #printDoc .sign .sign-col.right { text-align: right; padding-left: 10%; }
+  #printDoc .sign .line {
+    border-bottom: 1px solid #1a1a1a; height: 22pt; margin-bottom: 5pt;
+  }
+  #printDoc .sign .sign-label { font-size: 9pt; color: #555; }
+  #printDoc .doc-footer {
+    margin-top: 24pt; padding-top: 8pt;
+    border-top: 1px solid #d8d8d8;
+    font-size: 8.5pt; color: #888; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ЭКРАН БЛОКИРОВКИ ============ -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h2>Калькулятор защищён</h2>
+    <p>Введите пароль для доступа</p>
+    <div class="lock-input-wrap">
+      <input type="password" id="pwdInput" placeholder="Пароль" autocomplete="off" autofocus>
+      <button class="toggle-pwd" type="button" onclick="togglePwd()" title="Показать пароль">👁</button>
+    </div>
+    <button class="lock-btn" onclick="tryUnlock()">Открыть</button>
+    <div id="pwdError"></div>
+  </div>
+</div>
+
+<!-- ============ ОСНОВНОЙ КОНТЕНТ ============ -->
+<div id="appContent">
+  <div class="top-btns">
+    <button class="top-btn help" onclick="switchMainTab('manual')" title="Руководство">❓</button>
+    <button class="top-btn" onclick="lockApp()">🔒 Заблокировать</button>
+  </div>
+
+  <div class="wrap">
+    <h1>Калькулятор дней отпуска железнодорожника</h1>
+    <p class="subtitle">Расчёт отпуска, право на отпуск, PDF-выгрузка в стиле ОАО «РЖД»</p>
+
+    <!-- ВКЛАДКИ -->
+    <div class="main-tabs">
+      <button class="main-tab active" data-tab="calc" onclick="switchMainTab('calc')">🧮 Калькулятор</button>
+      <button class="main-tab" data-tab="manual" onclick="switchMainTab('manual')">📖 Руководство</button>
+    </div>
+
+    <!-- ============ ПАНЕЛЬ КАЛЬКУЛЯТОРА ============ -->
+    <div id="panel-calc" class="panel-content active">
+
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Право на отпуск (отпускной стаж)</div>
+          <div class="grid">
+            <div class="field">
+              <label>Дата приёма на работу</label>
+              <input type="date" id="hireDate">
+            </div>
+            <div class="field">
+              <label>Дата, на которую считаем стаж</label>
+              <input type="date" id="calcDate">
+            </div>
+            <div class="field">
+              <label>Отпуска без сохранения зарплаты свыше 14 дней</label>
+              <input type="number" id="unpaidOver14" value="0" min="0" step="1">
+              <span class="hint">Календарных дней сверх лимита 14</span>
+            </div>
+            <div class="field">
+              <label>Отпуск по уходу за ребёнком до 3 лет</label>
+              <input type="number" id="parentalLeave" value="0" min="0" step="1">
+              <span class="hint">Календарных дней (исключается полностью)</span>
+            </div>
+            <div class="field">
+              <label>Отсутствие без уважительных причин</label>
+              <input type="number" id="absenteeism" value="0" min="0" step="1">
+              <span class="hint">Прогулы и т.п.</span>
+            </div>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:#7a766e; line-height:1.6;">
+            <b>Не исключаются из общего стажа:</b> донорские дни, ежегодные отпуска, больничные, командировки — они входят в стаж для основного отпуска (ст. 121 ТК РФ).
+          </div>
+        </div>
+
+        <div id="pravo-result" class="result" style="background:linear-gradient(180deg,#e5f0ff 0%,#d6e8ff 100%); border-left-color:#2563eb; box-shadow:0 2px 8px rgba(37,99,235,0.12);">
+          <div class="total" style="border-bottom-color:#a6c2ec;">
+            <span class="label" style="color:#1d4ed8;">Отпускной стаж</span>
+            <span class="value" style="color:#1d4ed8; font-size:28px;" id="pravo-stazh">—</span>
+          </div>
+          <div class="right-callout">
+            <div class="right-label" id="right-label">Право на очередной отпуск</div>
+            <div class="right-date" id="right-date">—</div>
+            <div class="right-note" id="right-note"></div>
+          </div>
+          <div class="lines" id="pravo-lines" style="color:#1e40af;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Основной отпуск</div>
+          <div class="grid">
+            <div class="field">
+              <label>Календарных дней</label>
+              <input type="number" id="mainDays" value="28" min="0">
+              <span class="hint">По ТК РФ — 28 дней</span>
+            </div>
+            <div class="field">
+              <label>За ненормированный день</label>
+              <input type="number" id="irregularDays" value="0" min="0">
+              <span class="hint">Если положен, минимум 3 дня</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Дополнительный отпуск за вредные условия труда</div>
+          <div class="grid">
+            <div class="field">
+              <label>Полная норма, кал. дней</label>
+              <input type="number" id="harmFull" value="14" min="0">
+              <span class="hint">Машинистам и помощникам — 14</span>
+            </div>
+            <div class="field">
+              <label>Среднемесячное число рабочих дней</label>
+              <input type="number" id="avgWorkDays" value="20.6" min="1" step="0.1">
+              <span class="hint">Из производственного календаря / 12</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Стаж для отпуска за вредность</div>
+          <div class="grid">
+            <div class="field">
+              <label>Всего рабочих дней за расчётный период</label>
+              <input type="number" id="totalWorkDays" value="247" min="0" step="1">
+              <span class="hint">За год: среднемесячное × 12</span>
+            </div>
+            <div class="field">
+              <label>Дни отсутствия (не входят в стаж)</label>
+              <input type="number" id="absenceDays" value="0" min="0" step="1">
+              <span class="hint warn">См. пояснение ниже</span>
+            </div>
+            <div class="field">
+              <label>Донорские дни во вредных условиях</label>
+              <input type="number" id="donorDays" value="0" min="0" step="1">
+              <span class="hint info">Не входят в стаж за вредность, но входят в общий стаж</span>
+            </div>
+            <div class="field">
+              <label>Фактически отработано во вредных условиях</label>
+              <div class="computed" id="harmWorkedDisplay">247</div>
+              <span class="hint">Всего − отсутствие − донорские</span>
+            </div>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:#7a766e; line-height:1.6;">
+            <b>Что входит в «Дни отсутствия» (исключается из стажа за вредность):</b><br>
+            • все виды отпусков (ежегодный, учебный, без сохранения зарплаты);<br>
+            • больничные и периоды временной нетрудоспособности;<br>
+            • командировки;<br>
+            • простои, прогулы, отстранения;<br>
+            • дни, когда работа во вредных условиях составила <b>менее половины рабочего дня</b>.<br>
+            <b>Донорские дни</b> указываются отдельно — они входят в общий отпускной стаж, но не входят в стаж за вредность.
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Северный отпуск</div>
+          <div class="grid">
+            <div class="field">
+              <label>Категория местности</label>
+              <select id="northType">
+                <option value="0">Не применяется</option>
+                <option value="24">Районы Крайнего Севера — 24 дня</option>
+                <option value="16">Приравненные к РКС — 16 дней</option>
+                <option value="8">Другие северные районы — 8 дней</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Полных месяцев в этой местности</label>
+              <input type="number" id="northMonths" value="12" min="0" step="1">
+              <span class="hint">Если отработан полный год — 12</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button onclick="calcAll()">Рассчитать всё</button>
+          <button class="pdf" onclick="downloadPDF()">📄 Скачать расчёт в PDF</button>
+          <button class="ghost" onclick="resetAll()">Сбросить</button>
+        </div>
+
+        <div id="result" class="result"></div>
+      </div>
+
+      <footer>Упрощённый калькулятор. Не заменяет расчёт отдела кадров.</footer>
+    </div>
+
+    <!-- ============ ПАНЕЛЬ РУКОВОДСТВА ============ -->
+    <div id="panel-manual" class="panel-content">
+      <div class="manual-layout">
+        <nav class="manual-toc">
+          <h3>Содержание</h3>
+          <ol>
+            <li><a href="#m1" onclick="scrollToSec(event)">Назначение</a></li>
+            <li><a href="#m2" onclick="scrollToSec(event)">Вход в калькулятор</a></li>
+            <li><a href="#m3" onclick="scrollToSec(event)">Интерфейс</a></li>
+            <li><a href="#m4" onclick="scrollToSec(event)">Пошаговая инструкция</a></li>
+            <li><a href="#m5" onclick="scrollToSec(event)">Право на отпуск</a></li>
+            <li><a href="#m6" onclick="scrollToSec(event)">Допотпуск за вредность</a></li>
+            <li><a href="#m7" onclick="scrollToSec(event)">Северный отпуск</a></li>
+            <li><a href="#m8" onclick="scrollToSec(event)">Скачивание PDF</a></li>
+            <li><a href="#m9" onclick="scrollToSec(event)">Частые вопросы</a></li>
+            <li><a href="#m10" onclick="scrollToSec(event)">Ограничения</a></li>
+          </ol>
+        </nav>
+
+        <div class="manual-content">
+
+          <h2 id="m1">1. Назначение калькулятора</h2>
+          <p>Калькулятор предназначен для расчёта продолжительности ежегодного отпуска работника железнодорожного транспорта с учётом:</p>
+          <ul>
+            <li><strong>основного</strong> ежегодного оплачиваемого отпуска;</li>
+            <li><strong>дополнительного</strong> отпуска за вредные условия труда;</li>
+            <li><strong>северного</strong> отпуска (для работников Крайнего Севера и приравненных местностей);</li>
+            <li><strong>дополнительного</strong> отпуска за ненормированный рабочий день;</li>
+            <li><strong>права на отпуск</strong> — даты, с которой работник может уйти в очередной оплачиваемый отпуск.</li>
+          </ul>
+          <div class="manual-callout warn">
+            Калькулятор носит <strong>справочный характер</strong> и не заменяет расчёт отдела кадров. Итоговая продолжительность отпуска определяется с учётом локальных актов организации и фактического графика работы.
+          </div>
+
+          <h2 id="m2">2. Вход в калькулятор</h2>
+          <p>При открытии страницы появляется <strong>экран блокировки</strong>. Введите пароль и нажмите «Открыть» (или клавишу Enter).</p>
+          <ul>
+            <li>Кнопка с глазом 👁 — показать/скрыть вводимый пароль.</li>
+            <li>Пароль действует в течение одной сессии браузера — при закрытии вкладки запрашивается заново.</li>
+            <li>Кнопка <strong>«🔒 Заблокировать»</strong> в правом верхнем углу — принудительная блокировка (если отходите от компьютера).</li>
+          </ul>
+
+          <h2 id="m3">3. Интерфейс</h2>
+          <p>Калькулятор имеет <strong>две вкладки</strong> в верхней части:</p>
+          <table>
+            <tr>
+              <th style="width:40%">Вкладка</th>
+              <th>Назначение</th>
+            </tr>
+            <tr>
+              <td><strong>🧮 Калькулятор</strong></td>
+              <td>Основной расчёт продолжительности отпуска</td>
+            </tr>
+            <tr>
+              <td><strong>📖 Руководство</strong></td>
+              <td>Инструкция по работе с калькулятором (этот текст)</td>
+            </tr>
+          </table>
+          <p>В правом верхнем углу — две кнопки:</p>
+          <ul>
+            <li><strong>❓</strong> — быстрый переход на руководство из любой вкладки;</li>
+            <li><strong>🔒</strong> — заблокировать калькулятор.</li>
+          </ul>
+
+          <h2 id="m4">4. Пошаговая инструкция</h2>
+
+          <h3>Шаг 1. Введите данные работника</h3>
+          <p><strong>Дата приёма на работу</strong> — день, с которого работник числится в организации (по трудовому договору). Используется для расчёта отпускного стажа.</p>
+          <p><strong>Дата, на которую считаем стаж</strong> — по умолчанию подставляется сегодняшняя дата. Можно изменить, если нужно рассчитать стаж на будущую или прошлую дату.</p>
+          <p><strong>Отпуска без сохранения зарплаты свыше 14 дней</strong> — суммарное количество календарных дней сверх лимита 14 дней за рабочий год. Если работник брал 20 дней отпуска за свой счёт, укажите <strong>6</strong>.</p>
+          <p><strong>Отпуск по уходу за ребёнком до 3 лет</strong> — календарные дни такого отпуска. Из стажа исключается полностью. Если не было — оставьте 0.</p>
+          <p><strong>Отсутствие без уважительных причин</strong> — прогулы и другие неявки. Если не было — 0.</p>
+
+          <div class="manual-callout success">
+            <strong>Что НЕ исключается из общего стажа:</strong> донорские дни (в обычных условиях), ежегодные отпуска, больничные, командировки. Они входят в стаж для основного отпуска согласно ст. 121 ТК РФ.
+          </div>
+
+          <h3>Шаг 2. Настройте основной отпуск</h3>
+          <p><strong>Календарных дней</strong> — по умолчанию 28 (ст. 115 ТК РФ). Можно изменить, если работнику положен удлинённый основной отпуск.</p>
+          <p><strong>За ненормированный день</strong> — если работнику установлен ненормированный рабочий день, укажите положенное количество дней (минимум 3 по ст. 119 ТК РФ). Если не положен — 0.</p>
+
+          <h3>Шаг 3. Заполните данные по вредности</h3>
+          <p><strong>Полная норма, кал. дней</strong> — сколько дней допотпуска за вредность положено работнику при полной отработке. Для машинистов и помощников машинистов локомотивов по Коллективному договору ОАО «РЖД» — <strong>14 дней</strong>.</p>
+          <p><strong>Среднемесячное число рабочих дней</strong> — по умолчанию 20,6. Значение берётся из производственного календаря за год, делённое на 12.</p>
+          <p><strong>Всего рабочих дней за расчётный период</strong> — общее количество рабочих дней, которые работник должен был отработать за период (по графику). По умолчанию 247 — это 20,6 × 12.</p>
+          <p><strong>Дни отсутствия</strong> — суммарное количество рабочих дней, когда работник не работал во вредных условиях. Сюда входят:</p>
+          <ul>
+            <li>все виды отпусков (ежегодный, учебный, без сохранения зарплаты);</li>
+            <li>больничные и периоды временной нетрудоспособности;</li>
+            <li>командировки;</li>
+            <li>простои, прогулы, отстранения;</li>
+            <li>дни, когда работа во вредных условиях составила <strong>менее половины рабочего дня</strong>.</li>
+          </ul>
+          <p><strong>Донорские дни во вредных условиях</strong> — если работник сдавал кровь в период работы во вредных условиях, эти дни не засчитываются в стаж для допотпуска за вредность. Но в общий отпускной стаж они входят.</p>
+          <p><strong>Фактически отработано во вредных условиях</strong> — поле пересчитывается автоматически:</p>
+          <div class="manual-formula">Фактически = Всего рабочих дней − Дни отсутствия − Донорские дни во вредных</div>
+
+          <h3>Шаг 4. Укажите северный отпуск (если применимо)</h3>
+          <table>
+            <tr>
+              <th>Значение</th>
+              <th>Продолжительность</th>
+            </tr>
+            <tr><td>Районы Крайнего Севера</td><td>24 календарных дня</td></tr>
+            <tr><td>Приравненные к РКС</td><td>16 календарных дней</td></tr>
+            <tr><td>Другие северные районы (с РК)</td><td>8 календарных дней</td></tr>
+          </table>
+          <p><strong>Полных месяцев в этой местности</strong> — если работник отработал полный год, укажите 12. Если меньше — калькулятор посчитает пропорционально.</p>
+
+          <h3>Шаг 5. Нажмите «Рассчитать всё»</h3>
+          <p>Калькулятор выполнит полный расчёт и покажет в блоке «Право на отпуск»:</p>
+          <ul>
+            <li>отпускной стаж в годах, месяцах и днях;</li>
+            <li>дату возникновения права на очередной отпуск (крупная дата с подсказкой «через N дней»);</li>
+            <li>номер текущего рабочего года и его границы;</li>
+            <li>сколько дней отпуска заработано в текущем рабочем году;</li>
+            <li>дату первого права (через 6 месяцев непрерывной работы).</li>
+          </ul>
+          <p>В блоке «Итого дней отпуска» — общая продолжительность с расшифровкой по каждой составляющей.</p>
+
+          <h2 id="m5">5. Расчёт права на отпуск</h2>
+          <h3>Логика определения даты</h3>
+          <ol>
+            <li><strong>Первый отпуск</strong> — право возникает через <strong>6 месяцев</strong> непрерывной работы (ст. 122 ТК РФ).</li>
+            <li><strong>Последующие отпуска</strong> — право наступает с началом <strong>нового рабочего года</strong>, то есть в годовщину приёма на работу.</li>
+          </ol>
+          <p><strong>Рабочий год</strong> — это не календарный год, а 12 месяцев от даты приёма. Например, если работник принят 15.03.2023:</p>
+          <ul>
+            <li>1-й рабочий год: 15.03.2023 — 14.03.2024</li>
+            <li>2-й рабочий год: 15.03.2024 — 14.03.2025</li>
+            <li>3-й рабочий год: 15.03.2025 — 14.03.2026</li>
+          </ul>
+          <p>Калькулятор сам определяет, в каком рабочем году находится работник на дату расчёта.</p>
+
+          <h3>Отпускной стаж</h3>
+          <p>Стаж считается в календарных днях по формуле:</p>
+          <div class="manual-formula">Стаж = (Дата расчёта − Дата приёма + 1) − Исключаемые периоды</div>
+          <p>Полные месяцы определяются делением на 29,6. <strong>Остаток менее 14,8 дней отбрасывается, 14,8 и более — округляется до полного месяца.</strong></p>
+
+          <h2 id="m6">6. Расчёт дополнительного отпуска за вредность</h2>
+
+          <h3>Структура допотпуска</h3>
+          <p>Дополнительный отпуск за вредные условия труда делится на две части:</p>
+          <ul>
+            <li><strong>Фиксированная часть — 7 дней.</strong> Даётся за сам факт работы во вредных условиях, независимо от фактически отработанного времени (минимальная норма по ст. 117 ТК РФ).</li>
+            <li><strong>Переменная часть — остальные дни.</strong> Рассчитывается пропорционально фактически отработанному во вредных условиях времени.</li>
+          </ul>
+
+          <h3>Формулы</h3>
+          <div class="manual-formula">Фактически отработано = Всего раб. дней − Дни отсутствия − Донорские во вредных
+
+Полных месяцев = Фактически отработано ÷ Среднемесячное число рабочих дней
+                 (остаток &lt; 0,5 мес. — отбрасывается, ≥ 0,5 — округляется до 1)
+
+Переменная часть = (Норма − 7) ÷ 12 × Полных месяцев
+
+Итого за вредность = 7 (фиксированные) + Переменная часть</div>
+
+          <h3>Особое правило</h3>
+          <p>Если работник отработал во вредных условиях <strong>11 и более полных месяцев</strong>, допотпуск предоставляется <strong>в полном объёме</strong> (все 14 дней).</p>
+
+          <h3>Что не входит в стаж за вредность</h3>
+          <ul>
+            <li>все виды отпусков (ежегодный, учебный, без сохранения зарплаты);</li>
+            <li>больничные;</li>
+            <li>командировки;</li>
+            <li>простои, прогулы, отстранения;</li>
+            <li>донорские дни, если работник сдавал кровь в период работы во вредных условиях;</li>
+            <li>дни, когда во вредных условиях отработано менее половины смены.</li>
+          </ul>
+
+          <h2 id="m7">7. Северный отпуск</h2>
+          <p>Продолжительность северного отпуска зависит от категории местности (ст. 321 ТК РФ, Закон РФ № 4520-1):</p>
+          <table>
+            <tr>
+              <th>Категория</th>
+              <th>Дней</th>
+            </tr>
+            <tr><td>Районы Крайнего Севера</td><td>24</td></tr>
+            <tr><td>Приравненные местности</td><td>16</td></tr>
+            <tr><td>Другие северные районы (с РК)</td><td>8</td></tr>
+          </table>
+          <p><strong>Пропорциональный расчёт:</strong> если работник отработал меньше года, дни считаются по формуле:</p>
+          <div class="manual-formula">Дней = (Полная норма ÷ 12) × Количество полных месяцев</div>
+          <p>Северный отпуск <strong>суммируется</strong> с основным и допотпуском за вредность.</p>
+
+          <h2 id="m8">8. Скачивание PDF-документа</h2>
+          <p>Кнопка <strong>«📄 Скачать расчёт в PDF»</strong> формирует официальный документ в стиле ОАО «РЖД».</p>
+
+          <h3>Как сохранить</h3>
+          <ol>
+            <li>Нажмите кнопку — откроется системное окно печати.</li>
+            <li>В списке принтеров выберите <strong>«Сохранить как PDF»</strong>.</li>
+            <li>Формат: <strong>A4</strong>, ориентация <strong>книжная</strong>.</li>
+            <li>Нажмите <strong>«Сохранить»</strong> — выберите папку и имя файла.</li>
+          </ol>
+
+          <h3>Что содержит документ</h3>
+          <p><strong>Страница 1 — Сводка:</strong></p>
+          <ul>
+            <li>шапка с наименованием организации и номером документа;</li>
+            <li>исходные данные работника;</li>
+            <li>таблица с продолжительностью по каждой составляющей и итогом;</li>
+            <li>поля для подписей работника и кадровика.</li>
+          </ul>
+          <p><strong>Страница 2 — Подробный расчёт:</strong> формулы на каждом шаге для стажа, права на отпуск, вредности, севера.</p>
+          <p><strong>Страница 3 — Нормативная база:</strong> статьи ТК РФ, подзаконные акты и Коллективный договор ОАО «РЖД», таблица учёта периодов в стаже.</p>
+          <p>Документ печатается с фирменной красно-белой палитрой, таблицами и выделенным итогом. Логотипы РЖД не используются — только текстовое наименование организации.</p>
+
+          <h2 id="m9">9. Частые вопросы</h2>
+
+          <h4>Работник брал 5 дней отпуска за свой счёт. Что вводить в поле «Отпуска без сохранения зарплаты свыше 14 дней»?</h4>
+          <p>Ничего. В стаж включаются первые 14 дней за рабочий год. Если общее количество не превышает 14 — поле остаётся нулевым.</p>
+
+          <h4>Работник сдал кровь во вредных условиях. Как это учесть?</h4>
+          <p>В поле «Дни отсутствия» этот день <strong>не вписывайте</strong>. Впишите его в отдельное поле «Донорские дни во вредных условиях». В общий стаж он войдёт, в стаж за вредность — нет.</p>
+
+          <h4>Работник отработал во вредных условиях 10 месяцев и 20 дней. Сколько дней допотпуска?</h4>
+          <p>10 месяцев и 20 дней — это 10,66 полных месяцев. Остаток 0,66 ≥ 0,5 — округляется до 11. При 11 месяцах допотпуск даётся полностью (14 дней).</p>
+
+          <h4>Работник устроился 01.02.2025, считается ли стаж на 01.08.2025?</h4>
+          <p>Да, к этой дате прошло ровно 6 месяцев — право на первый отпуск наступило.</p>
+
+          <h4>Как учесть командировку для стажа за вредность?</h4>
+          <p>Командировка входит в «Дни отсутствия» — впишите количество рабочих дней, приходящихся на неё.</p>
+
+          <h2 id="m10">10. Ограничения калькулятора</h2>
+          <ul>
+            <li>Расчёт <strong>справочный</strong> и не заменяет официальный расчёт кадровой службы.</li>
+            <li>Не учитываются особые случаи: вахтовый метод, суммированный учёт рабочего времени, неполная ставка, работа по совместительству.</li>
+            <li>Северный отпуск считается по упрощённой схеме «полных месяцев», без учёта вахтового метода.</li>
+          </ul>
+
+          <div class="manual-callout warn">
+            Для официальных расчётов сверяйтесь с бухгалтерией и актуальными нормативными актами.
+          </div>
+
+        </div>
+      </div>
+
+      <footer>Упрощённый калькулятор. Не заменяет расчёт отдела кадров.</footer>
+    </div>
+
+  </div>
+</div>
+
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Наверх">↑</button>
+
+<!-- ============ ДОКУМЕНТ ДЛЯ ПЕЧАТИ / PDF ============ -->
+<div id="printDoc"></div>
+
+<script>
+/* ============================================================
+   НАСТРОЙКА ПАРОЛЯ
+   ============================================================ */
+const PASSWORD = "rzd2026";
+const SESSION_KEY = 'rzd_calc_unlocked';
+
+function tryUnlock() {
+  const input = document.getElementById('pwdInput');
+  const err = document.getElementById('pwdError');
+  if (input.value === PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    unlockApp();
+  } else {
+    err.textContent = 'Неверный пароль';
+    input.value = '';
+    input.focus();
+  }
+}
+function unlockApp() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appContent').classList.add('unlocked');
+  initApp();
+}
+function lockApp() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('appContent').classList.remove('unlocked');
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('pwdInput').value = '';
+  document.getElementById('pwdError').textContent = '';
+  document.getElementById('pwdInput').focus();
+}
+function togglePwd() {
+  const inp = document.getElementById('pwdInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  inp.focus();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pwdInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryUnlock();
+  });
+  if (sessionStorage.getItem(SESSION_KEY) === '1') unlockApp();
+});
+
+/* ============================================================
+   ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+   ============================================================ */
+function switchMainTab(name) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+  document.querySelector('.main-tab[data-tab="' + name + '"]').classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToSec(e) {
+  e.preventDefault();
+  const id = e.target.getAttribute('href').substring(1);
+  const el = document.getElementById(id);
+  if (el) {
+    const y = el.getBoundingClientRect().top + window.pageYOffset - 20;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    document.querySelectorAll('.manual-toc a').forEach(a => a.classList.remove('active'));
+    e.target.classList.add('active');
+  }
+}
+
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('backToTop');
+  if (window.pageYOffset > 400) btn.classList.add('show');
+  else btn.classList.remove('show');
+});
+
+/* ============================================================
+   ЛОГИКА КАЛЬКУЛЯТОРА
+   ============================================================ */
+let appInitialized = false;
+let lastCalcResult = null;
+
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('calcDate').value = today;
+  updateHarmWorked();
+  ['totalWorkDays', 'absenceDays', 'donorDays'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateHarmWorked);
+  });
+}
+
+function fmt(n) {
+  return (Math.round(n * 100) / 100).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+function fmtDate(d) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const mon = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}.${mon}.${d.getFullYear()}`;
+}
+function dateAddMonths(date, months) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+function daysBetween(a, b) {
+  return Math.floor((b - a) / (1000 * 60 * 60 * 24));
+}
+function plural(n, one, few, many) {
+  const n10 = n % 10, n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return one;
+  if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+  return many;
+}
+function getWorkingYearInfo(hireDate, calcDate) {
+  let yearsDiff = calcDate.getFullYear() - hireDate.getFullYear();
+  const anniversary = new Date(calcDate.getFullYear(), hireDate.getMonth(), hireDate.getDate());
+  if (calcDate < anniversary) yearsDiff--;
+  const currentYearNum = yearsDiff + 1;
+  const startCurrent = new Date(hireDate);
+  startCurrent.setFullYear(startCurrent.getFullYear() + yearsDiff);
+  const nextStart = new Date(hireDate);
+  nextStart.setFullYear(nextStart.getFullYear() + yearsDiff + 1);
+  const endCurrent = new Date(nextStart);
+  endCurrent.setDate(endCurrent.getDate() - 1);
+  return { currentYearNum, startCurrent, endCurrent, nextStart };
+}
+
+function calcStazh() {
+  const hireVal = document.getElementById('hireDate').value;
+  const calcVal = document.getElementById('calcDate').value;
+  if (!hireVal || !calcVal) return null;
+  const hire = new Date(hireVal);
+  const calc = new Date(calcVal);
+  if (calc < hire) return null;
+
+  let years = calc.getFullYear() - hire.getFullYear();
+  let months = calc.getMonth() - hire.getMonth();
+  let days = calc.getDate() - hire.getDate();
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(calc.getFullYear(), calc.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  if (months < 0) { years--; months += 12; }
+
+  const totalDays = daysBetween(hire, calc) + 1;
+  const unpaid = parseFloat(document.getElementById('unpaidOver14').value) || 0;
+  const parental = parseFloat(document.getElementById('parentalLeave').value) || 0;
+  const absent = parseFloat(document.getElementById('absenteeism').value) || 0;
+  const excluded = unpaid + parental + absent;
+  const stazhDays = Math.max(0, totalDays - excluded);
+
+  const fullMonths = (() => {
+    const monthsTotal = Math.floor(stazhDays / 29.6);
+    const remainder = stazhDays - monthsTotal * 29.6;
+    return remainder >= 14.8 ? monthsTotal + 1 : monthsTotal;
+  })();
+
+  const workingYear = getWorkingYearInfo(hire, calc);
+
+  const monthsInCurrentYear = (() => {
+    const { startCurrent } = workingYear;
+    if (calc < startCurrent) return 0;
+    let m = (calc.getFullYear() - startCurrent.getFullYear()) * 12
+          + (calc.getMonth() - startCurrent.getMonth());
+    if (calc.getDate() < startCurrent.getDate()) m--;
+    const tempDate = new Date(startCurrent);
+    tempDate.setMonth(tempDate.getMonth() + m);
+    const remDays = daysBetween(tempDate, calc);
+    if (remDays >= 15) m++;
+    return Math.max(0, m);
+  })();
+
+  return { years, months, days, totalDays, excluded, stazhDays, fullMonths,
+           unpaid, parental, absent,
+           hireDate: hire, calcDate: calc, workingYear, monthsInCurrentYear };
+}
+
+function calcAll() {
+  const st = calcStazh();
+  const pravoRes = document.getElementById('pravo-result');
+  const pravoLines = document.getElementById('pravo-lines');
+
+  let pravoData = null;
+  if (st) {
+    const mainDaysVal = parseFloat(document.getElementById('mainDays').value) || 28;
+    const earned = (mainDaysVal / 12) * st.fullMonths;
+    const earnedCurrent = (mainDaysVal / 12) * st.monthsInCurrentYear;
+
+    const firstRight = dateAddMonths(st.hireDate, 6);
+    let rightDate, rightLabel;
+    if (st.calcDate < firstRight) {
+      rightDate = firstRight;
+      rightLabel = 'Право на первый отпуск наступит';
+    } else {
+      rightDate = st.workingYear.nextStart;
+      rightLabel = 'Право на очередной отпуск наступит';
+    }
+
+    const daysToRight = daysBetween(st.calcDate, rightDate);
+    let rightNote;
+    if (daysToRight === 0) {
+      rightNote = 'Сегодня';
+    } else {
+      const m = Math.floor(daysToRight / 30);
+      const d = daysToRight % 30;
+      if (m > 0) {
+        rightNote = `через ${m} ${plural(m, 'месяц', 'месяца', 'месяцев')}` +
+                    (d > 0 ? ` ${d} ${plural(d, 'день', 'дня', 'дней')}` : '');
+      } else {
+        rightNote = `через ${d} ${plural(d, 'день', 'дня', 'дней')}`;
+      }
+    }
+
+    document.getElementById('pravo-stazh').textContent =
+      `${st.years} г. ${st.months} мес. ${st.days} дн.`;
+    document.getElementById('right-label').textContent = rightLabel;
+    document.getElementById('right-date').textContent = fmtDate(rightDate);
+    document.getElementById('right-note').textContent = rightNote;
+
+    pravoLines.innerHTML = `
+      <p><b>Всего дней с даты приёма:</b> ${st.totalDays}</p>
+      <p><b>Исключаемые периоды:</b> <span class="excluded">${st.excluded} дн.</span></p>
+      <p><b>Стаж для отпуска:</b> ${st.stazhDays} дн. (${st.fullMonths} полных мес.)</p>
+      <p><b>Заработано дней основного отпуска:</b> ${fmt(earned)} дн.</p>
+      <hr style="border:none; border-top:1px dashed #a6c2ec; margin:10px 0;">
+      <p><b>Текущий рабочий год №${st.workingYear.currentYearNum}:</b>
+         ${fmtDate(st.workingYear.startCurrent)} — ${fmtDate(st.workingYear.endCurrent)}</p>
+      <p><b>Отработано в текущем рабочем году:</b> ${st.monthsInCurrentYear} мес.
+         <span class="small">заработано ${fmt(earnedCurrent)} дн.</span></p>
+      <p><b>Начало следующего рабочего года:</b> ${fmtDate(st.workingYear.nextStart)}</p>
+      <p><b>Право на первый отпуск (через 6 мес.):</b> ${fmtDate(firstRight)}
+         ${st.calcDate >= firstRight ? '— наступило' : '— впереди'}</p>
+    `;
+    pravoRes.classList.add('show');
+    pravoData = { earned, earnedCurrent, firstRight, rightDate, rightLabel, rightNote, mainDaysVal };
+  } else {
+    pravoRes.classList.remove('show');
+  }
+
+  const main = parseFloat(document.getElementById('mainDays').value) || 0;
+  const irregular = parseFloat(document.getElementById('irregularDays').value) || 0;
+  const harmFull = parseFloat(document.getElementById('harmFull').value) || 0;
+  const avgWorkDays = parseFloat(document.getElementById('avgWorkDays').value) || 1;
+  const totalWorkDays = parseFloat(document.getElementById('totalWorkDays').value) || 0;
+  const absenceDays = parseFloat(document.getElementById('absenceDays').value) || 0;
+  const donorDays = parseFloat(document.getElementById('donorDays').value) || 0;
+  const northNorm = parseFloat(document.getElementById('northType').value) || 0;
+  const northMonths = parseFloat(document.getElementById('northMonths').value) || 0;
+
+  const harmWorked = Math.max(0, totalWorkDays - absenceDays - donorDays);
+  const harmFixed = Math.min(7, harmFull);
+  const harmVarMax = Math.max(0, harmFull - harmFixed);
+
+  let fullMonths = avgWorkDays > 0 ? harmWorked / avgWorkDays : 0;
+  let harmVarDays = 0;
+  let monthsUsed = 0;
+
+  if (fullMonths >= 11) {
+    harmVarDays = harmVarMax;
+    monthsUsed = 12;
+  } else {
+    const whole = Math.floor(fullMonths);
+    const rem = fullMonths - whole;
+    monthsUsed = rem >= 0.5 ? whole + 1 : whole;
+    harmVarDays = (harmVarMax / 12) * monthsUsed;
+  }
+
+  const harmTotal = harmFixed + harmVarDays;
+
+  let northDays = 0;
+  let northLabel = '';
+  if (northNorm > 0) {
+    if (northMonths >= 12) {
+      northDays = northNorm;
+      northLabel = 'полная норма';
+    } else {
+      northDays = (northNorm / 12) * northMonths;
+      northLabel = `пропорционально (${northMonths} мес.)`;
+    }
+  }
+
+  const total = main + irregular + harmTotal + northDays;
+
+  const res = document.getElementById('result');
+  res.innerHTML = `
+    <div class="total">
+      <span class="label">Итого дней отпуска</span>
+      <span class="value">${fmt(total)}</span>
+    </div>
+    <div class="lines">
+      <p><b>Основной отпуск:</b> ${main} дн.</p>
+      ${irregular > 0 ? `<p><b>За ненормированный день:</b> ${irregular} дн.</p>` : ''}
+      <p><b>За вредные условия труда:</b> ${fmt(harmTotal)} дн.</p>
+      <p class="small">Фиксированная часть: ${harmFixed} дн.</p>
+      <p class="small">Пропорциональная часть: ${fmt(harmVarDays)} дн. (учтено ${monthsUsed} мес. из ${fmt(fullMonths)})</p>
+      <p class="small">Всего рабочих дней: ${fmt(totalWorkDays)}, отсутствие: <span class="excluded">${fmt(absenceDays)}</span>${donorDays > 0 ? `, донорские во вредных: <span class="donor">${fmt(donorDays)}</span>` : ''}, фактически во вредных: <b>${fmt(harmWorked)}</b></p>
+      ${northNorm > 0 ? `<p><b>Северный отпуск:</b> ${fmt(northDays)} дн. <span class="small">(${northLabel})</span></p>` : ''}
+    </div>
+  `;
+  res.classList.add('show');
+
+  lastCalcResult = {
+    st, pravoData,
+    main, irregular, harmFull, avgWorkDays, totalWorkDays,
+    absenceDays, donorDays, northNorm, northMonths,
+    harmWorked, harmFixed, harmVarMax, harmVarDays, harmTotal,
+    monthsUsed, fullMonths, northDays, northLabel, total
+  };
+}
+
+function updateHarmWorked() {
+  const total = parseFloat(document.getElementById('totalWorkDays').value) || 0;
+  const absence = parseFloat(document.getElementById('absenceDays').value) || 0;
+  const donor = parseFloat(document.getElementById('donorDays').value) || 0;
+  const worked = Math.max(0, total - absence - donor);
+  const el = document.getElementById('harmWorkedDisplay');
+  if (el) el.textContent = fmt(worked);
+}
+
+function resetAll() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('hireDate').value = '';
+  document.getElementById('calcDate').value = today;
+  document.getElementById('unpaidOver14').value = 0;
+  document.getElementById('parentalLeave').value = 0;
+  document.getElementById('absenteeism').value = 0;
+  document.getElementById('mainDays').value = 28;
+  document.getElementById('irregularDays').value = 0;
+  document.getElementById('harmFull').value = 14;
+  document.getElementById('avgWorkDays').value = 20.6;
+  document.getElementById('totalWorkDays').value = 247;
+  document.getElementById('absenceDays').value = 0;
+  document.getElementById('donorDays').value = 0;
+  document.getElementById('northType').value = 0;
+  document.getElementById('northMonths').value = 12;
+  updateHarmWorked();
+  document.getElementById('pravo-result').classList.remove('show');
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('pravo-lines').innerHTML = '';
+  document.getElementById('result').innerHTML = '';
+  lastCalcResult = null;
+}
+
+/* ============================================================
+   ФОРМИРОВАНИЕ PDF
+   ============================================================ */
+function downloadPDF() {
+  if (!lastCalcResult) calcAll();
+  if (!lastCalcResult) {
+    alert('Введите исходные данные и нажмите «Рассчитать всё».');
+    return;
+  }
+  const doc = document.getElementById('printDoc');
+  doc.innerHTML = buildPrintHTML();
+  setTimeout(() => window.print(), 120);
+}
+
+function buildPrintHTML() {
+  const r = lastCalcResult;
+  const st = r.st;
+  const pd = r.pravoData;
+  const today = new Date();
+  const docNum = 'РЗД-' + today.getFullYear() + '-' +
+                 String(today.getMonth() + 1).padStart(2, '0') +
+                 String(today.getDate()).padStart(2, '0') + '-' +
+                 String(Math.floor(Math.random() * 9000) + 1000);
+
+  const northNames = {
+    24: 'Районы Крайнего Севера',
+    16: 'Местности, приравненные к районам Крайнего Севера',
+    8: 'Другие северные районы (с районным коэффициентом)'
+  };
+
+  const header = (title, sub) => `
+    <div class="doc-header">
+      <table>
+        <tr>
+          <td>
+            <div class="org-name">ОАО «Российские железные дороги»</div>
+            <div class="org-sub">Расчёт продолжительности ежегодного отпуска работника</div>
+          </td>
+          <td style="text-align:right; vertical-align:top; width:32%;">
+            <div class="doc-info">
+              Документ № <b>${docNum}</b><br>
+              Дата формирования: <b>${fmtDate(today)}</b><br>
+              Время: <b>${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}</b>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <h1 class="doc-title">${title}</h1>
+    ${sub ? `<p class="doc-title-sub">${sub}</p>` : ''}
+  `;
+
+  const footer = (page) => `
+    <div class="doc-footer">
+      Документ сформирован автоматически калькулятором дней отпуска железнодорожника. 
+      Расчёт носит справочный характер. Стр. ${page}
+    </div>
+  `;
+
+  let html = '';
+
+  html += `<div class="pdf-page">`;
+  html += header('Расчёт продолжительности отпуска', 'Справка о продолжительности ежегодного отпуска и дополнительных отпусков');
+  html += `<h2>1. Исходные данные работника</h2>`;
+  html += `<table>
+    <tr><th style="width:65%">Параметр</th><th>Значение</th></tr>
+    <tr><td>Дата приёма на работу</td><td class="num">${fmtDate(st.hireDate)}</td></tr>
+    <tr><td>Дата, на которую произведён расчёт</td><td class="num">${fmtDate(st.calcDate)}</td></tr>
+    <tr><td>Отпуска без сохранения зарплаты свыше 14 дней (исключается)</td><td class="num">${st.unpaid} дн.</td></tr>
+    <tr><td>Отпуск по уходу за ребёнком до 3 лет (исключается)</td><td class="num">${st.parental} дн.</td></tr>
+    <tr><td>Отсутствие без уважительных причин (исключается)</td><td class="num">${st.absent} дн.</td></tr>
+  </table>`;
+  html += `<h2>2. Результат расчёта</h2>`;
+  html += `<table>
+    <tr><th style="width:65%">Составляющая отпуска</th><th>Календарных дней</th></tr>
+    <tr><td>Основной ежегодный оплачиваемый отпуск</td><td class="num">${r.main}</td></tr>`;
+  if (r.irregular > 0) {
+    html += `<tr><td>Дополнительный отпуск за ненормированный рабочий день</td><td class="num">${r.irregular}</td></tr>`;
+  }
+  html += `<tr><td>Дополнительный отпуск за вредные условия труда</td><td class="num">${fmt(r.harmTotal)}</td></tr>`;
+  if (r.northNorm > 0) {
+    html += `<tr><td>Дополнительный отпуск за работу в северной местности (${northNames[r.northNorm]})</td><td class="num">${fmt(r.northDays)}</td></tr>`;
+  }
+  html += `<tr class="total-row">
+      <td>ИТОГО ПРОДОЛЖИТЕЛЬНОСТЬ ОТПУСКА</td>
+      <td class="num">${fmt(r.total)}</td>
+    </tr>
+  </table>`;
+  html += `<div class="total-badge">
+    <span class="tb-label">Итого календарных дней отпуска</span>
+    <span class="tb-value">${fmt(r.total)}</span>
+  </div>`;
+  html += `<p class="note">Расчёт носит справочный характер и не заменяет расчёт отдела кадров.</p>`;
+  html += `<div class="sign">
+    <div class="sign-col">
+      <div class="line"></div>
+      <div class="sign-label">Работник (ФИО, подпись)</div>
+    </div>
+    <div class="sign-col right">
+      <div class="line"></div>
+      <div class="sign-label">Специалист отдела кадров (ФИО, подпись)</div>
+    </div>
+  </div>`;
+  html += footer(1);
+  html += `</div>`;
+
+  html += `<div class="pdf-page">`;
+  html += header('Подробный расчёт', 'Пошаговое обоснование продолжительности отпуска');
+  html += `<h2>3. Методика расчёта</h2>`;
+
+  html += `<h3>3.1. Отпускной стаж</h3>`;
+  html += `<div class="formula">Общий стаж = Дата расчёта − Дата приёма + 1
+     = ${fmtDate(st.calcDate)} − ${fmtDate(st.hireDate)} + 1 = ${st.totalDays} дн.</div>`;
+  html += `<div class="formula">Исключаемые периоды = ${st.unpaid} + ${st.parental} + ${st.absent} = ${st.excluded} дн.</div>`;
+  html += `<div class="formula">Стаж для отпуска = ${st.totalDays} − ${st.excluded} = ${st.stazhDays} дн.</div>`;
+  html += `<div class="formula">Полных месяцев стажа = ${st.stazhDays} ÷ 29,6 = ${(st.stazhDays / 29.6).toFixed(2)}
+Учтено полных месяцев: ${st.fullMonths}</div>`;
+
+  if (pd) {
+    html += `<h3>3.2. Право на отпуск</h3>`;
+    html += `<div class="formula">Дата первого права = ${fmtDate(st.hireDate)} + 6 мес. = ${fmtDate(pd.firstRight)}</div>`;
+    html += `<table>
+      <tr><th style="width:65%">Показатель</th><th>Значение</th></tr>
+      <tr><td>Дата первого права</td><td class="num">${fmtDate(pd.firstRight)}</td></tr>
+      <tr><td>Статус на дату расчёта</td><td class="num">${st.calcDate >= pd.firstRight ? 'Наступило' : 'Впереди'}</td></tr>
+      <tr><td>Текущий рабочий год №</td><td class="num">${st.workingYear.currentYearNum}</td></tr>
+      <tr><td>Границы текущего рабочего года</td><td class="num">${fmtDate(st.workingYear.startCurrent)} — ${fmtDate(st.workingYear.endCurrent)}</td></tr>
+      <tr><td>Начало следующего рабочего года</td><td class="num">${fmtDate(pd.rightDate)}</td></tr>
+      <tr><td>Отработано в текущем рабочем году</td><td class="num">${st.monthsInCurrentYear} мес.</td></tr>
+      <tr><td>Заработано дней в текущем году</td><td class="num">${fmt(pd.earnedCurrent)}</td></tr>
+      <tr><td>Заработано дней всего</td><td class="num">${fmt(pd.earned)}</td></tr>
+    </table>`;
+  }
+
+  html += `<h3>3.3. Дополнительный отпуск за вредные условия труда</h3>`;
+  html += `<div class="formula">Из ${r.harmFull} дней: ${r.harmFixed} дн. фиксированных + ${r.harmVarMax} дн. переменных</div>`;
+  html += `<div class="formula">Фактически во вредных = ${r.totalWorkDays} − ${r.absenceDays} − ${r.donorDays} = ${fmt(r.harmWorked)} дн.</div>`;
+  html += `<div class="formula">Полных месяцев = ${fmt(r.harmWorked)} ÷ ${r.avgWorkDays} = ${fmt(r.fullMonths)} мес.
+${r.fullMonths >= 11 ? '→ допотпуск в полном объёме' : '→ учтено ' + r.monthsUsed + ' мес.'}</div>`;
+  html += `<div class="formula">Переменная часть = (${r.harmVarMax} ÷ 12) × ${r.monthsUsed} = ${fmt(r.harmVarDays)} дн.</div>`;
+  html += `<div class="formula">Итого за вредность = ${r.harmFixed} + ${fmt(r.harmVarDays)} = ${fmt(r.harmTotal)} дн.</div>`;
+
+  if (r.northNorm > 0) {
+    html += `<h3>3.4. Северный отпуск</h3>`;
+    html += `<div class="formula">Категория: ${northNames[r.northNorm]} → полная норма ${r.northNorm} дн.
+Отработано полных месяцев: ${r.northMonths}
+${r.northMonths >= 12 ? `Дней = ${r.northNorm} дн. (полная норма)` : `Дней = (${r.northNorm} ÷ 12) × ${r.northMonths} = ${fmt(r.northDays)} дн.`}</div>`;
+  }
+
+  html += `<h3>3.5. Итоговая продолжительность отпуска</h3>`;
+  html += `<div class="formula">Итого = ${r.main} + ${r.irregular} + ${fmt(r.harmTotal)} + ${fmt(r.northDays)} = ${fmt(r.total)} календарных дней</div>`;
+
+  html += footer(2);
+  html += `</div>`;
+
+  html += `<div class="pdf-page">`;
+  html += header('Нормативная база', 'Основания для расчёта продолжительности отпуска');
+
+  html += `<h2>4. Трудовой кодекс РФ</h2>
+  <table>
+    <tr><th style="width:22%">Статья</th><th>Содержание</th></tr>
+    <tr><td>ст. 114</td><td>Ежегодные оплачиваемые отпуска</td></tr>
+    <tr><td>ст. 115</td><td>Продолжительность ежегодного основного оплачиваемого отпуска — 28 календарных дней</td></tr>
+    <tr><td>ст. 117</td><td>Ежегодный дополнительный оплачиваемый отпуск за работу с вредными условиями труда — не менее 7 календарных дней</td></tr>
+    <tr><td>ст. 119</td><td>Ежегодный дополнительный отпуск за ненормированный рабочий день — не менее 3 календарных дней</td></tr>
+    <tr><td>ст. 121</td><td>Исчисление стажа работы, дающего право на ежегодный основной оплачиваемый отпуск</td></tr>
+    <tr><td>ст. 122</td><td>Право на отпуск за первый год работы возникает через 6 месяцев непрерывной работы</td></tr>
+    <tr><td>ст. 123</td><td>Очерёдность предоставления ежегодных оплачиваемых отпусков</td></tr>
+    <tr><td>ст. 321</td><td>Дополнительный отпуск за работу в РКС и приравненных местностях: 24 и 16 календарных дней</td></tr>
+  </table>`;
+
+  html += `<h2>5. Подзаконные акты</h2>
+  <table>
+    <tr><th style="width:45%">Документ</th><th>Содержание</th></tr>
+    <tr><td>Инструкция, утв. Постановлением Госкомтруда СССР № 273/П-20 от 21.11.1975</td><td>Порядок применения Списка производств с вредными условиями труда</td></tr>
+    <tr><td>Закон РФ от 19.02.1993 № 4520-1</td><td>Гарантии и компенсации для лиц, работающих в районах Крайнего Севера</td></tr>
+    <tr><td>Постановление Совмина СССР от 03.01.1983 № 12</td><td>Перечень районов Крайнего Севера и приравненных местностей</td></tr>
+    <tr><td>Коллективный договор ОАО «РЖД»</td><td>Дополнительный отпуск за вредные условия труда для машинистов — 14 календарных дней</td></tr>
+  </table>`;
+
+  html += `<h2>6. Учёт периодов в отпускном стаже</h2>
+  <table>
+    <tr><th style="width:50%">Период</th><th>Учёт в стаже</th></tr>
+    <tr><td>Ежегодный оплачиваемый отпуск</td><td>В общий стаж — да, в стаж за вредность — нет</td></tr>
+    <tr><td>Учебный отпуск</td><td>Не включается</td></tr>
+    <tr><td>Отпуск без сохранения зарплаты до 14 дней</td><td>Включается в общий стаж</td></tr>
+    <tr><td>Отпуск без сохранения зарплаты свыше 14 дней</td><td>Не включается</td></tr>
+    <tr><td>Больничный</td><td>В общий — да, в стаж за вредность — нет</td></tr>
+    <tr><td>Командировка</td><td>В общий — да, в стаж за вредность — нет</td></tr>
+    <tr><td>Донорские дни (обычные условия)</td><td>Включается в общий стаж</td></tr>
+    <tr><td>Донорские дни (во вредных условиях)</td><td>Не включается в стаж за вредность</td></tr>
+    <tr><td>Отпуск по уходу за ребёнком до 3 лет</td><td>Не включается</td></tr>
+    <tr><td>Прогул</td><td>Не включается</td></tr>
+  </table>`;
+
+  html += `<div class="sign">
+    <div class="sign-col">
+      <div class="line"></div>
+      <div class="sign-label">Работник (ФИО, подпись)</div>
+    </div>
+    <div class="sign-col right">
+      <div class="line"></div>
+      <div class="sign-label">Специалист отдела кадров (ФИО, подпись)</div>
+    </div>
+  </div>`;
+
+  html += footer(3);
+  html += `</div>`;
+
+  return html;
+}
+</script>
+
+</body>
+</html>
